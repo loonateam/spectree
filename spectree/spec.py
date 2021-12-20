@@ -210,7 +210,8 @@ class SpecTree:
         """
         routes, tags = {}, {}
         for route in self.backend.find_routes():
-            regex_check = re.match(fr'/{self.config.API_URL}/v\d+/', str(route))
+            regex_check = re.compile(fr'/{self.config.API_URL}/v\d+/')
+            regex_check = regex_check.match(str(route))
             if not version and regex_check:
                 continue
             elif version and not regex_check:
