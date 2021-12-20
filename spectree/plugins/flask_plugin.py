@@ -181,7 +181,10 @@ class FlaskPlugin(BasePlugin):
             app.add_url_rule(
                 rule=self.config.get_version_url(version),
                 endpoint=f"openapi_{self.config.PATH}_{version}",
-                view_func=lambda vers=version: jsonify(self.spectree._generate_spec(vers)))
+                view_func=lambda vers=version: jsonify(
+                    self.spectree._generate_spec(vers)
+                ),
+            )
 
             if isinstance(app, Blueprint):
 
@@ -210,5 +213,7 @@ class FlaskPlugin(BasePlugin):
                     app.add_url_rule(
                         rule=f"/{self.config.PATH}{ '/' + version if version else ''}/{ui}",
                         endpoint=f"openapi_{self.config.PATH}{ '/' + version if version else ''}_{ui}",
-                        view_func=lambda ui=ui, vers=version: PAGES[ui].format(self.config.get_version_url(vers)),
+                        view_func=lambda ui=ui, vers=version: PAGES[ui].format(
+                            self.config.get_version_url(vers)
+                        ),
                     )
