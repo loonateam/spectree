@@ -51,6 +51,7 @@ class SpecTree:
         self.config = Config(**kwargs)
         self.backend_name = backend_name
         self.backend = backend(self) if backend else PLUGINS[backend_name](self)
+        self.version_regex = re.compile(fr"/{self.config.API_URL}/v\d+/")
         # init
         self.models = {}
         if app:
@@ -210,8 +211,7 @@ class SpecTree:
         """
         routes, tags = {}, {}
         for route in self.backend.find_routes():
-            regex_check = re.compile(fr"/{self.config.API_URL}/v\d+/")
-            regex_check = regex_check.match(str(route))
+            regex_check = self.version_regex.match(str(route))
             if not version and regex_check:
                 continue
             elif version and not regex_check:

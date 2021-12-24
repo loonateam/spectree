@@ -180,7 +180,7 @@ class FlaskPlugin(BasePlugin):
         for version in self.config.API_VERSIONS:
             app.add_url_rule(
                 rule=self.config.get_version_url(version),
-                endpoint=f"openapi_{self.config.PATH}_{version}",
+                endpoint=f"openapi_{self.config.PATH}_{version.strip('/')}",
                 view_func=lambda vers=version: jsonify(
                     self.spectree._generate_spec(vers)
                 ),
@@ -211,8 +211,8 @@ class FlaskPlugin(BasePlugin):
             else:
                 for ui in PAGES:
                     app.add_url_rule(
-                        rule=f"/{self.config.PATH}{ '/' + version if version else ''}/{ui}",
-                        endpoint=f"openapi_{self.config.PATH}{ '/' + version if version else ''}_{ui}",
+                        rule=f"/{self.config.PATH}{version}/{ui}",
+                        endpoint=f"openapi_{self.config.PATH}{version.strip('/')}_{ui}",
                         view_func=lambda ui=ui, vers=version: PAGES[ui].format(
                             self.config.get_version_url(vers)
                         ),

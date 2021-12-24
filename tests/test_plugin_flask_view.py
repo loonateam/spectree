@@ -30,7 +30,7 @@ api = SpecTree(
     before=before_handler,
     after=after_handler,
     api_prefix=api_prefix,
-    api_versions=["", api_version],
+    api_versions=["/", f"/{api_version}"],
     annotations=True,
 )
 
