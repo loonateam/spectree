@@ -39,7 +39,7 @@ class Config:
 
         self.logger = logging.getLogger(__name__)
 
-        self.API_VERSIONS = ["/"]
+        self.VERSION_REGEX = None
         self.API_URL = "api"
 
         self.update(**kwargs)

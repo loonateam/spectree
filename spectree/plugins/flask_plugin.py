@@ -27,6 +27,16 @@ class FlaskPlugin(BasePlugin):
                 continue
             yield rule
 
+    def get_api_versions(self):
+        with self.spectree.app.app_context():
+            versions = {
+                result.group(1)
+                for version in self.find_routes()
+                if (result := self.config.VERSION_REGEX.match(str(version)))
+            }
+            versions.add("/")
+            return versions
+
     def bypass(self, func, method):
         return method in ["HEAD", "OPTIONS"]
 
@@ -177,12 +187,12 @@ class FlaskPlugin(BasePlugin):
     def register_route(self, app):
         from flask import Blueprint, jsonify
 
-        for version in self.config.API_VERSIONS:
+        for version in self.get_api_versions():
             app.add_url_rule(
                 rule=self.config.get_version_url(version),
                 endpoint=f"openapi_{self.config.PATH}_{version.strip('/')}",
                 view_func=lambda vers=version: jsonify(
-                    self.spectree._generate_spec(vers)
+                    self.spectree._generate_spec(vers.rstrip("/"))
                 ),
             )
 
