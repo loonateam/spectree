@@ -32,7 +32,8 @@ class FlaskPlugin(BasePlugin):
             versions = {
                 result.group(1)
                 for version in self.find_routes()
-                if (result := self.config.VERSION_REGEX.match(str(version)))
+                if self.config.VERSION_REGEX
+                and (result := self.config.VERSION_REGEX.match(str(version)))
             }
             versions.add("/")
             return versions

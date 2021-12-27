@@ -210,9 +210,10 @@ class SpecTree:
         """
         regex_check = re.compile(f"/{self.config.API_URL}{version}")
         routes, tags = {}, {}
+        version_regex = self.config.VERSION_REGEX
         for route in self.backend.find_routes():
 
-            if (not version and self.config.VERSION_REGEX.match(str(route))) or (
+            if (version_regex and not version and version_regex.match(str(route))) or (
                 version and not regex_check.match(str(route))
             ):
                 continue
