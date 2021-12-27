@@ -28,6 +28,9 @@ class FlaskPlugin(BasePlugin):
             yield rule
 
     def get_api_versions(self):
+        """
+        Get all versions API according to config VERSION_REGEX
+        """
         with self.spectree.app.app_context():
             versions = {
                 result.group(1)

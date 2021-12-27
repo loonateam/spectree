@@ -16,6 +16,8 @@ class Config:
     :ivar DOMAIN: service host domain
     :ivar SECURITY_SCHEMES: OpenAPI `securitySchemes` JSON with list of auth configs
     :ivar SECURITY: OpenAPI `security` JSON at the global level
+    :ivar VERSION_REGEX: regex to split API version
+    :ivar API_URL: prefix api endpoints
     """
 
     def __init__(self, **kwargs):
