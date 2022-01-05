@@ -23,7 +23,7 @@ def api_after_handler(req, resp, err, _):
     resp.headers["X-API"] = "OK"
 
 
-api_versions = ["", "/v1", "/v2"]
+api_versions = ["", "v1", "v2"]
 api_url = "api"
 api = SpecTree(
     "flask",
@@ -81,6 +81,7 @@ class UserAnnotated(MethodView):
 
 
 for version in api_versions:
+    version = f'/{version}' if version else version
     app.add_url_rule(
         f"/{api_url}{version}/ping",
         endpoint=f'ping{f"_{version}" if version else ""}',
@@ -119,6 +120,7 @@ def client():
     "version", api_versions, ids=[version or "/v0" for version in api_versions]
 )
 def test_flask_validate(client, version):
+    version = f'/{version}' if version else version
     resp = client.get(f"{api_url}{version}/ping")
     assert resp.status_code == 422
     assert resp.headers.get("X-Error") == "Validation Error"
@@ -164,6 +166,7 @@ def test_flask_validate(client, version):
     "version", api_versions, ids=[version or "/v0" for version in api_versions]
 )
 def test_flask_doc(client, version):
+    version = f'/{version}' if version else version
     resp = client.get(f"/apidoc{version}/openapi.json")
     assert all(True for key in resp.json.get("paths").keys() if key and version in key)
 
