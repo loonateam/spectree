@@ -51,7 +51,7 @@ class Config:
         return f"/{self.PATH}/{self.FILENAME}"
 
     def get_version_url(self, version: str):
-        return f"/{self.PATH}{version}/{self.FILENAME}"
+        return f"/{self.PATH}{f'/{version}' if version else ''}/{self.FILENAME}"
 
     def __repr__(self):
         display = "\n{:=^80}\n".format(self.__class__.__name__)

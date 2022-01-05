@@ -1,5 +1,4 @@
 import json
-import re
 from random import randint
 
 import pytest
@@ -31,7 +30,7 @@ api = SpecTree(
     before=before_handler,
     after=after_handler,
     api_url=api_url,
-    version_regex=re.compile(rf"/{api_url}(/v\d+)"),
+    version_regex=r"v\d+",
     annotations=True,
 )
 

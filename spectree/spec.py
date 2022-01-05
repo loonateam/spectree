@@ -51,6 +51,11 @@ class SpecTree:
         self.config = Config(**kwargs)
         self.backend_name = backend_name
         self.backend = backend(self) if backend else PLUGINS[backend_name](self)
+        self.version_regex = (
+            re.compile(fr"/{self.config.API_URL}/({self.config.VERSION_REGEX})")
+            if self.config.VERSION_REGEX
+            else None
+        )
         # init
         self.models = {}
         if app:
@@ -208,14 +213,15 @@ class SpecTree:
         """
         generate OpenAPI spec according to routes and decorators
         """
-        regex_check = re.compile(f"/{self.config.API_URL}{version}")
+        regex_check = re.compile(f"/{self.config.API_URL}/{version}")
         routes, tags = {}, {}
-        version_regex = self.config.VERSION_REGEX
         for route in self.backend.find_routes():
 
-            if (version_regex and not version and version_regex.match(str(route))) or (
-                version and not regex_check.match(str(route))
-            ):
+            if (
+                self.version_regex
+                and not version
+                and self.version_regex.match(str(route))
+            ) or (version and not regex_check.match(str(route))):
                 continue
 
             path, parameters = self.backend.parse_path(route)

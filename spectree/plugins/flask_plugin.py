@@ -36,9 +36,9 @@ class FlaskPlugin(BasePlugin):
                 result.group(1)
                 for version in self.find_routes()
                 if self.config.VERSION_REGEX
-                and (result := self.config.VERSION_REGEX.match(str(version)))
+                and (result := self.spectree.version_regex.match(str(version)))
             }
-            versions.add("/")
+            versions.add("")
             return versions
 
     def bypass(self, func, method):
@@ -194,9 +194,9 @@ class FlaskPlugin(BasePlugin):
         for version in self.get_api_versions():
             app.add_url_rule(
                 rule=self.config.get_version_url(version),
-                endpoint=f"openapi_{self.config.PATH}_{version.strip('/')}",
+                endpoint=f"openapi_{self.config.PATH}_{version}",
                 view_func=lambda vers=version: jsonify(
-                    self.spectree._generate_spec(vers.rstrip("/"))
+                    self.spectree._generate_spec(vers)
                 ),
             )
 
@@ -225,7 +225,7 @@ class FlaskPlugin(BasePlugin):
             else:
                 for ui in PAGES:
                     app.add_url_rule(
-                        rule=f"/{self.config.PATH}{version}/{ui}",
+                        rule=f"/{self.config.PATH}{f'/{version}' if version else ''}/{ui}",
                         endpoint=f"openapi_{self.config.PATH}{version.strip('/')}_{ui}",
                         view_func=lambda ui=ui, vers=version: PAGES[ui].format(
                             self.config.get_version_url(vers)
