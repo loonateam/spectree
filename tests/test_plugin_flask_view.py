@@ -23,7 +23,17 @@ def api_after_handler(req, resp, err, _):
     resp.headers["X-API"] = "OK"
 
 
-api = SpecTree("flask", before=before_handler, after=after_handler, annotations=True)
+api_versions = ["", "v1", "v2"]
+api_url = "api"
+api = SpecTree(
+    "flask",
+    before=before_handler,
+    after=after_handler,
+    api_url=api_url,
+    version_regex=r"v\d+",
+    annotations=True,
+)
+
 app = Flask(__name__)
 app.config["TESTING"] = True
 
@@ -70,13 +80,25 @@ class UserAnnotated(MethodView):
         return jsonify(name=json.name, score=score)
 
 
-app.add_url_rule("/ping", view_func=Ping.as_view("ping"))
-app.add_url_rule("/api/user/<name>", view_func=User.as_view("user"), methods=["POST"])
-app.add_url_rule(
-    "/api/user_annotated/<name>",
-    view_func=UserAnnotated.as_view("user_annotated"),
-    methods=["POST"],
-)
+for version in api_versions:
+    version = f'/{version}' if version else version
+    app.add_url_rule(
+        f"/{api_url}{version}/ping",
+        endpoint=f'ping{f"_{version}" if version else ""}',
+        view_func=Ping.as_view("ping"),
+    )
+    app.add_url_rule(
+        f"/{api_url}{version}/user/<name>",
+        endpoint=f'user{f"_{version}" if version else ""}',
+        view_func=User.as_view("user"),
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        f"/{api_url}{version}/user_annotated/<name>",
+        endpoint=f'user_annotated{f"_{version}" if version else ""}',
+        view_func=UserAnnotated.as_view("user_annotated"),
+        methods=["POST"],
+    )
 
 # INFO: ensures that spec is calculated and cached _after_ registering
 # view functions for validations. This enables tests to access `api.spec`
@@ -94,24 +116,28 @@ def client():
         yield client
 
 
-def test_flask_validate(client):
-    resp = client.get("/ping")
+@pytest.mark.parametrize(
+    "version", api_versions, ids=[version or "/v0" for version in api_versions]
+)
+def test_flask_validate(client, version):
+    version = f'/{version}' if version else version
+    resp = client.get(f"{api_url}{version}/ping")
     assert resp.status_code == 422
     assert resp.headers.get("X-Error") == "Validation Error"
 
-    resp = client.get("/ping", headers={"lang": "en-US"})
+    resp = client.get(f"{api_url}{version}/ping", headers={"lang": "en-US"})
     assert resp.json == {"msg": "pong"}
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
-    resp = client.post("api/user/flask")
+    resp = client.post(f"{api_url}{version}/user/flask")
     assert resp.status_code == 422
     assert resp.headers.get("X-Error") == "Validation Error"
 
     client.set_cookie("flask", "pub", "abcdefg")
     for fragment in ("user", "user_annotated"):
         resp = client.post(
-            f"/api/{fragment}/flask?order=1",
+            f"{api_url}{version}/{fragment}/flask?order=1",
             data=json.dumps(dict(name="flask", limit=10)),
             content_type="application/json",
         )
@@ -122,26 +148,30 @@ def test_flask_validate(client):
         assert resp.json["score"] == sorted(resp.json["score"], reverse=True)
 
         resp = client.post(
-            f"/api/{fragment}/flask?order=0",
+            f"{api_url}{version}/{fragment}/flask?order=0",
             data=json.dumps(dict(name="flask", limit=10)),
             content_type="application/json",
         )
         assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
         resp = client.post(
-            f"/api/{fragment}/flask?order=0",
+            f"{api_url}{version}/{fragment}/flask?order=0",
             data="name=flask&limit=10",
             content_type="application/x-www-form-urlencoded",
         )
         assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
 
-def test_flask_doc(client):
-    resp = client.get("/apidoc/openapi.json")
-    assert resp.json == api.spec
+@pytest.mark.parametrize(
+    "version", api_versions, ids=[version or "/v0" for version in api_versions]
+)
+def test_flask_doc(client, version):
+    version = f'/{version}' if version else version
+    resp = client.get(f"/apidoc{version}/openapi.json")
+    assert all(True for key in resp.json.get("paths").keys() if key and version in key)
 
-    resp = client.get("/apidoc/redoc")
+    resp = client.get(f"/apidoc{version}/redoc")
     assert resp.status_code == 200
 
-    resp = client.get("/apidoc/swagger")
+    resp = client.get(f"/apidoc{version}/swagger")
     assert resp.status_code == 200

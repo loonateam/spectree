@@ -27,6 +27,20 @@ class FlaskPlugin(BasePlugin):
                 continue
             yield rule
 
+    def get_api_versions(self):
+        """
+        Get all versions API according to config VERSION_REGEX
+        """
+        with self.spectree.app.app_context():
+            versions = {
+                result.group(1)
+                for version in self.find_routes()
+                if self.config.VERSION_REGEX
+                and (result := self.spectree.version_regex.match(str(version)))
+            }
+            versions.add("")
+            return versions
+
     def bypass(self, func, method):
         return method in ["HEAD", "OPTIONS"]
 
@@ -177,38 +191,43 @@ class FlaskPlugin(BasePlugin):
     def register_route(self, app):
         from flask import Blueprint, jsonify
 
-        app.add_url_rule(
-            rule=self.config.spec_url,
-            endpoint=f"openapi_{self.config.PATH}",
-            view_func=lambda: jsonify(self.spectree.spec),
-        )
+        for version in self.get_api_versions():
+            app.add_url_rule(
+                rule=self.config.get_version_url(version),
+                endpoint=f"openapi_{self.config.PATH}_{version}",
+                view_func=lambda vers=version: jsonify(
+                    self.spectree._generate_spec(vers)
+                ),
+            )
 
-        if isinstance(app, Blueprint):
+            if isinstance(app, Blueprint):
 
-            def gen_doc_page(ui):
-                spec_url = self.config.spec_url
-                if self.blueprint_state.url_prefix is not None:
-                    spec_url = "/".join(
-                        (
-                            self.blueprint_state.url_prefix.rstrip("/"),
-                            self.config.spec_url.lstrip("/"),
+                def gen_doc_page(ui):
+                    spec_url = self.config.spec_url
+                    if self.blueprint_state.url_prefix is not None:
+                        spec_url = "/".join(
+                            (
+                                self.blueprint_state.url_prefix.rstrip("/"),
+                                self.config.spec_url.lstrip("/"),
+                            )
                         )
+
+                    return PAGES[ui].format(spec_url)
+
+                for ui in PAGES:
+                    app.add_url_rule(
+                        rule=f"/{self.config.PATH}/{ui}",
+                        endpoint=f"openapi_{self.config.PATH}_{ui}",
+                        view_func=lambda ui=ui: gen_doc_page(ui),
                     )
 
-                return PAGES[ui].format(spec_url)
-
-            for ui in PAGES:
-                app.add_url_rule(
-                    rule=f"/{self.config.PATH}/{ui}",
-                    endpoint=f"openapi_{self.config.PATH}_{ui}",
-                    view_func=lambda ui=ui: gen_doc_page(ui),
-                )
-
-            app.record(lambda state: setattr(self, "blueprint_state", state))
-        else:
-            for ui in PAGES:
-                app.add_url_rule(
-                    rule=f"/{self.config.PATH}/{ui}",
-                    endpoint=f"openapi_{self.config.PATH}_{ui}",
-                    view_func=lambda ui=ui: PAGES[ui].format(self.config.spec_url),
-                )
+                app.record(lambda state: setattr(self, "blueprint_state", state))
+            else:
+                for ui in PAGES:
+                    app.add_url_rule(
+                        rule=f"/{self.config.PATH}{f'/{version}' if version else ''}/{ui}",
+                        endpoint=f"openapi_{self.config.PATH}{version.strip('/')}_{ui}",
+                        view_func=lambda ui=ui, vers=version: PAGES[ui].format(
+                            self.config.get_version_url(vers)
+                        ),
+                    )

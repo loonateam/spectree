@@ -1,3 +1,4 @@
+import re
 from copy import deepcopy
 from functools import wraps
 
@@ -50,6 +51,11 @@ class SpecTree:
         self.config = Config(**kwargs)
         self.backend_name = backend_name
         self.backend = backend(self) if backend else PLUGINS[backend_name](self)
+        self.version_regex = (
+            re.compile(fr"/{self.config.API_URL}/({self.config.VERSION_REGEX})")
+            if self.config.VERSION_REGEX
+            else None
+        )
         # init
         self.models = {}
         if app:
@@ -203,12 +209,21 @@ class SpecTree:
 
         return model_key
 
-    def _generate_spec(self):
+    def _generate_spec(self, version=None):
         """
         generate OpenAPI spec according to routes and decorators
         """
+        regex_check = re.compile(f"/{self.config.API_URL}/{version}")
         routes, tags = {}, {}
         for route in self.backend.find_routes():
+
+            if (
+                self.version_regex
+                and not version
+                and self.version_regex.match(str(route))
+            ) or (version and not regex_check.match(str(route))):
+                continue
+
             path, parameters = self.backend.parse_path(route)
             routes[path] = routes.get(path, {})
             path_is_empty = True

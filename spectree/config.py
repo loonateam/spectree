@@ -16,6 +16,8 @@ class Config:
     :ivar DOMAIN: service host domain
     :ivar SECURITY_SCHEMES: OpenAPI `securitySchemes` JSON with list of auth configs
     :ivar SECURITY: OpenAPI `security` JSON at the global level
+    :ivar VERSION_REGEX: regex to split API version
+    :ivar API_URL: prefix api endpoints
     """
 
     def __init__(self, **kwargs):
@@ -39,11 +41,17 @@ class Config:
 
         self.logger = logging.getLogger(__name__)
 
+        self.VERSION_REGEX = None
+        self.API_URL = "api"
+
         self.update(**kwargs)
 
     @property
     def spec_url(self):
         return f"/{self.PATH}/{self.FILENAME}"
+
+    def get_version_url(self, version: str):
+        return f"/{self.PATH}{f'/{version}' if version else ''}/{self.FILENAME}"
 
     def __repr__(self):
         display = "\n{:=^80}\n".format(self.__class__.__name__)
