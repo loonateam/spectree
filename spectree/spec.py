@@ -302,6 +302,5 @@ class SpecTree:
             if "definitions" in schema:
                 for key, value in schema["definitions"].items():
                     definitions[f"{name}.{key}"] = value
-                del schema["definitions"]
 
         return definitions
