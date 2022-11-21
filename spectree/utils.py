@@ -245,3 +245,35 @@ def get_security(security):
         security = [security]
 
     return security
+
+def werkzeug_parse_rule(
+    rule: str,
+) -> Iterator[Tuple[Optional[str], Optional[str], str]]:
+    """A copy of werkzeug.parse_rule which is now removed.
+    Parse a rule and return it as generator. Each iteration yields tuples
+    in the form ``(converter, arguments, variable)``. If the converter is
+    `None` it's a static url part, otherwise it's a dynamic one.
+    """
+    pos = 0
+    end = len(rule)
+    do_match = RE_FLASK_RULE.match
+    used_names = set()
+    while pos < end:
+        m = do_match(rule, pos)
+        if m is None:
+            break
+        data = m.groupdict()
+        if data["static"]:
+            yield None, None, data["static"]
+        variable = data["variable"]
+        converter = data["converter"] or "default"
+        if variable in used_names:
+            raise ValueError(f"variable name {variable!r} used twice.")
+        used_names.add(variable)
+        yield converter, data["args"] or None, variable
+        pos = m.end()
+    if pos < end:
+        remaining = rule[pos:]
+        if ">" in remaining or "<" in remaining:
+            raise ValueError(f"malformed url rule: {rule!r}")
+        yield None, None, remaining
