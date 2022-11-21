@@ -2,6 +2,7 @@ from pydantic import ValidationError
 
 from .base import BasePlugin, Context
 from .page import PAGES
+from ..utils import werkzeug_parse_rule
 
 
 class FlaskPlugin(BasePlugin):

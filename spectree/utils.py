@@ -3,6 +3,7 @@ import logging
 import re
 from hashlib import sha1
 from typing import Any, Callable, Optional, Tuple
+from collections.abc import Iterator
 
 from pydantic import BaseModel
 
@@ -10,6 +11,21 @@ from pydantic import BaseModel
 HTTP_CODE = re.compile(r"^HTTP_(?P<code>\d{3})$")
 
 logger = logging.getLogger(__name__)
+
+RE_FLASK_RULE = re.compile(
+    r"""
+    (?P<static>[^<]*)                           # static rule data
+    <
+    (?:
+        (?P<converter>[a-zA-Z_][a-zA-Z0-9_]*)   # converter name
+        (?:\((?P<args>.*?)\))?                  # converter arguments
+        \:                                      # variable delimiter
+    )?
+    (?P<variable>[a-zA-Z_][a-zA-Z0-9_]*)        # variable name
+    >
+    """,
+    re.VERBOSE,
+)
 
 
 def parse_comments(func: Callable[..., Any]) -> Tuple[Optional[str], Optional[str]]:
